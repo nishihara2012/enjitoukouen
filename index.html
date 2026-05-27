@@ -73,7 +73,7 @@
 </div>
 
 <script>
-    // ⚠️【超重要】あなたのGoogle GASのURLをここに貼り付けてください！
+    // ⚠️【最重要】あなたのGoogle GASのURLをここに貼り付けてください！
     const APP_URL = "https://script.google.com/macros/s/AKfycbynOpCMUSdmgn-BFBS-bMh42nTeKqhhptkXTKRMpeJoj2i1gRqMzZ36KH6jmZBV5gIH/exec";
 
     let serverData = { dates: [], times: [], reservations: [] };
@@ -111,13 +111,12 @@
         if(!date) return;
 
         serverData.times.forEach(t => {
-            // スプレッドシート側のデータ（時差リセット済みの文字）と純粋に比較
             const booked = serverData.reservations.filter(r => {
                 const rDate = r.date.includes('T') ? r.date.split('T')[0] : r.date;
                 return rDate === date && r.className === className && r.time === t;
             }).length;
 
-            const remains = Math.max(0, 3 - booked); // 1枠3名まで
+            const remains = Math.max(0, 3 - booked);
             const div = document.createElement('div');
             div.className = `slot ${remains === 0 ? 'disabled' : ''}`;
             div.innerHTML = `<strong>${t}</strong> <span class="badge ${remains > 0 ? 'bg-success' : 'bg-danger'} float-end">残り ${remains} 枠</span>`;
