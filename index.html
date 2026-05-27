@@ -117,7 +117,7 @@
         container.innerHTML = "";
         selectedTime = "";
         document.getElementById('submitBtn').disabled = true;
-        document.getElementById('lunchWrapper').classList.add('d-none'); // 昼食欄を一旦隠す
+        document.getElementById('lunchWrapper').classList.add('d-none');
 
         if(!date || !className) return;
 
@@ -127,7 +127,6 @@
                 return rDate === date && r.className === className && r.time === t;
             }).length;
 
-            // 管理画面から取得した上限数（maxCapacity）を自動適用！
             const remains = Math.max(0, serverData.maxCapacity - booked);
             const div = document.createElement('div');
             div.className = `slot ${remains === 0 ? 'disabled' : ''}`;
@@ -140,13 +139,12 @@
                     selectedTime = t;
                     document.getElementById('submitBtn').disabled = false;
 
-                    // 💡「11:30～12:30」が選ばれた時だけ昼食欄をパッと表示する
                     const lunchBox = document.getElementById('lunchWrapper');
                     if(t.includes("11:30")) {
                         lunchBox.classList.remove('d-none');
                     } else {
                         lunchBox.classList.add('d-none');
-                        document.getElementById('resLunch').value = "不要"; // 他の時間帯は自動で不要に
+                        document.getElementById('resLunch').value = "不要";
                     }
                 };
             }
@@ -170,12 +168,13 @@
             className: document.querySelector('input[name="className"]:checked').value,
             time: selectedTime,
             name: document.getElementById('resName').value,
-            lunch: isLunchVisible ? document.getElementById('resLunch').value : "-", // 非表示の時はハイフンに
+            lunch: isLunchVisible ? document.getElementById('resLunch').value : "-",
             email: document.getElementById('resEmail').value
         };
 
         try {
-            await fetch(APP_URL, { method: 'POST', body: JSON.stringify(resData) });
+            // 💡 mode: 'no-cors' を追加し、Googleからの「失敗しました」誤判定エラーを完全に回避！
+            await fetch(APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(resData) });
             alert('ご予約ありがとうございました！メールをご確認ください。');
             location.reload();
         } catch(e) {
