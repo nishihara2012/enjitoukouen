@@ -54,7 +54,7 @@
             </div>
 
             <div class="mb-3 d-none" id="lunchWrapper">
-                <label class="form-label text-danger fw-bold">当当日当日の昼食</label>
+                <label class="form-label text-danger fw-bold">当日の昼食</label>
                 <select id="resLunch" class="form-select">
                     <option value="必要">必要</option>
                     <option value="不要" selected>不要</option>
@@ -67,8 +67,8 @@
 </div>
 
 <script>
-    // ⚠️【最重要】あなたのGoogle GASのURL（最後が /exec のもの）をここに貼り付けてください！
-    const APP_URL = "https://script.google.com/macros/s/AKfycbxz8Ol3dpVZ6MQOLDWIdMHs6wJ2rpev2XP3_kuPVhEoEUQZeA0-gC1jKs65uiVZSayG/exec";
+    // ⚠️【最重要】先ほどステップ1の「4」でコピーした、最新のGoogleのURL（最後が /exec ）をここに貼り付けてください！
+    const APP_URL = "https://script.google.com/macros/s/AKfycbwRqXfsgIX4_WPkeWrKXqUif0TwkPueCw2_dsWHCujMMKAPVKd2I7XMED_JUT_HqKRP/exec";
 
     let serverData = { dates: [], times: [], classes: [], maxCapacity: 2, reservations: [] };
     let selectedTime = "";
@@ -173,20 +173,12 @@
         };
 
         try {
-            // mode: 'cors' に戻して、Google側からの詳しいエラー情報（もしあれば）を捕まえられるように強化
-            const response = await fetch(APP_URL, { method: 'POST', body: JSON.stringify(resData) });
-            const result = await response.json();
-            
-            if(result.status === "success") {
-                alert('ご予約ありがとうございました！メールをご確認ください。');
-                location.reload();
-            } else {
-                showStatus("Google側でエラーが発生しました: " + JSON.stringify(result), true);
-                btn.disabled = false;
-            }
+            // 💡 mode: 'no-cors' にしてGitHubとGoogle間の通信を最も安定する形に固定します
+            await fetch(APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(resData) });
+            alert('ご予約ありがとうございました！メールをご確認ください。');
+            location.reload();
         } catch(e) {
-            // 💡 もしメール送信などでコケていたら、ここにエラーのメッセージ（英語など）が表示されます！
-            showStatus("通信エラーが発生しました: " + e.message + " (スプレッドシートへの書き込みは成功している可能性があります)", true);
+            showStatus("通信エラーが発生しました: " + e.message, true);
             btn.disabled = false;
         }
     };
