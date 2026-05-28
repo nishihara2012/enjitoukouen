@@ -85,7 +85,7 @@
 </div>
 
 <script>
-    // ⚠️【最重要】新アカウントのGoogle GASのURLをここに貼り付けてください！
+    // ⚠️【最重要】あなたのアカウントでデプロイした最新のURLをここに貼り付けてください！
     const APP_URL = "https://script.google.com/macros/s/AKfycbzg8-nnxcGDsYkA7oueQoTEP5EUucNnf_fST2-X0MhGcgQ1A27hoZJeiZu79weL-8lY/exec";
 
     let serverData = { dates: [], times: [], classes: [], maxCapacity: 2, reservations: [] };
@@ -99,7 +99,9 @@
             renderSettings();
             renderReservations();
             showStatus("");
-        } catch(e) { showStatus("データの読み込みに失敗しました", true); }
+        } catch(e) { 
+            showStatus("データの読み込みに失敗しました。URLやデプロイ権限をご確認ください。", true); 
+        }
     }
 
     function renderSettings() {
@@ -115,7 +117,6 @@
 
         const dateUl = document.getElementById('dateList');
         dateUl.innerHTML = serverData.dates.length === 0 ? '<li class="list-group-item text-muted text-center">日付が登録されていません</li>' : '';
-        // 日付を綺麗に並び替えて表示
         const sortedDates = [...serverData.dates].sort();
         sortedDates.forEach((d) => {
             const idx = serverData.dates.indexOf(d);
@@ -133,11 +134,10 @@
         const tbody = document.getElementById('resTable');
         tbody.innerHTML = serverData.reservations.length === 0 ? '<tr><td colspan="3" class="text-muted text-center py-4">現在ご予約はありません</td></tr>' : '';
         serverData.reservations.forEach((r, i) => {
-            const displayDate = r.date.includes('T') ? r.date.split('T')[0] : r.date;
             tbody.innerHTML += `
                 <tr>
                     <td>
-                        <span class="fw-bold text-primary">${displayDate}</span><br>
+                        <span class="fw-bold text-primary">${r.date}</span><br>
                         <small class="text-muted">${r.time}</small><br>
                         <span class="badge bg-secondary">${r.className}クラス</span>
                     </td>
@@ -173,7 +173,7 @@
             }
             d1.setDate(d1.getDate() + 1);
         }
-        alert(`${count}日分の日付を追加しました！\n画面一番下の「設定を保存する」ボタンを押すとスプレッドシートに保存されます。`);
+        alert(`${count}日分の日付を追加しました！\n一番下の「設定を保存する」ボタンを押すと確定します。`);
         renderSettings();
     }
 
@@ -196,27 +196,25 @@
         showStatus("設定を保存中...");
         const cap = parseInt(document.getElementById('maxCapacity').value, 10) || 2;
         try {
-            // スプレッドシート（シート2）にデータを確実に送り込む設定
-            const response = await fetch(APP_URL, {
+            await fetch(APP_URL, {
                 method: 'POST',
                 body: JSON.stringify({
                     action: 'updateSettings', dates: serverData.dates, times: serverData.times, classes: serverData.classes, maxCapacity: cap
                 })
             });
-            alert('スプレッドシートへの設定保存が完了しました！');
+            alert('設定を保存しました！');
             loadData();
-        } catch(e) { showStatus("保存に失敗しました。URLや権限を再度ご確認ください。", true); }
+        } catch(e) { showStatus("保存に失敗しました。", true); }
     }
 
     async function deleteRes(i) {
         if(confirm('スプレッドシートからこの予約を削除しますか？')) {
             showStatus("削除中...");
             const target = serverData.reservations[i];
-            const cleanDate = target.date.includes('T') ? target.date.split('T')[0] : target.date;
             try {
                 await fetch(APP_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'deleteReservation', date: cleanDate, className: target.className, time: target.time, name: target.name })
+                    body: JSON.stringify({ action: 'deleteReservation', date: target.date, className: target.className, time: target.time, name: target.name })
                 });
                 loadData();
             } catch(e) { showStatus("削除エラー", true); }
