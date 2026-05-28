@@ -67,7 +67,7 @@
 </div>
 
 <script>
-    // ⚠️【最重要】新アカウントのGoogle GASのURLをここに貼り付けてください！
+    // ⚠️【最重要】Google GASのURLをここに貼り付けてください！
     const APP_URL = "https://script.google.com/macros/s/AKfycbxXshaU3tAMkeAQMrQW7rEf5X6zOhUEmcryqfWGIz8iJuUqrieX7Kk-voKr_1NcvtC3/exec";
 
     let serverData = { dates: [], times: [], classes: [], maxCapacity: 2, reservations: [] };
@@ -87,7 +87,6 @@
     function initDates() {
         const select = document.getElementById('resDate');
         select.innerHTML = '<option value="">選択してください</option>';
-        // 日付を昇順にソートして並べる
         const sortedDates = [...serverData.dates].sort();
         sortedDates.forEach(d => {
             const opt = document.createElement('option');
@@ -112,6 +111,19 @@
         updateSlots();
     }
 
+    // 💡 英語表記になってしまう問題をここで綺麗にテキスト化して解決します
+    function formatTimeDisplay(t) {
+        if (typeof t === 'string' && t.includes('T')) {
+            // ISO形式の文字列（例: 1970-01-01T11:30:00.000Z）から時間部分を抽出
+            const timePart = t.split('T')[1];
+            if (timePart) {
+                const parts = timePart.split(':');
+                return parts[0] + ':' + parts[1]; // 「11:30」の形にする
+            }
+        }
+        return String(t); // すでに普通の文字列ならそのまま返す
+    }
+
     function updateSlots() {
         const date = document.getElementById('resDate').value;
         const classRadio = document.querySelector('input[name="className"]:checked');
@@ -125,25 +137,28 @@
         if(!date || !className) return;
 
         serverData.times.forEach(t => {
+            const displayTime = formatTimeDisplay(t); // 💡 ここで日本語（正常な表記）に強制変換します
+
             const booked = serverData.reservations.filter(r => {
                 const rDate = r.date.includes('T') ? r.date.split('T')[0] : r.date;
-                return rDate === date && r.className === className && r.time === t;
+                const rTime = formatTimeDisplay(r.time);
+                return rDate === date && r.className === className && rTime === displayTime;
             }).length;
 
             const remains = Math.max(0, serverData.maxCapacity - booked);
             const div = document.createElement('div');
             div.className = `slot ${remains === 0 ? 'disabled' : ''}`;
-            div.innerHTML = `<strong>${t}</strong> <span class="badge ${remains > 0 ? 'bg-success' : 'bg-danger'} float-end">残り ${remains} 枠</span>`;
+            div.innerHTML = `<strong>${displayTime}</strong> <span class="badge ${remains > 0 ? 'bg-success' : 'bg-danger'} float-end">残り ${remains} 枠</span>`;
             
             if(remains > 0) {
                 div.onclick = () => {
                     document.querySelectorAll('.slot').forEach(s => s.classList.remove('selected'));
                     div.classList.add('selected');
-                    selectedTime = t;
+                    selectedTime = displayTime;
                     document.getElementById('submitBtn').disabled = false;
 
                     const lunchBox = document.getElementById('lunchWrapper');
-                    if(t.includes("11:30")) {
+                    if(displayTime.includes("11:30")) {
                         lunchBox.classList.remove('d-none');
                     } else {
                         lunchBox.classList.add('d-none');
