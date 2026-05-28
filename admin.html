@@ -85,7 +85,7 @@
 </div>
 
 <script>
-    // ⚠️【最重要】あなたのアカウントでデプロイした最新のURLをここに貼り付けてください！
+    // ⚠️【最重要】Google GASのURLをここに貼り付けてください！
     const APP_URL = "https://script.google.com/macros/s/AKfycbwlZFWCniCf9KDHS3452bakpIcC7XpxipFZYI5cdszc2InUsvr4uVTXTLyqGy5yvL_B/exec";
 
     let serverData = { dates: [], times: [], classes: [], maxCapacity: 2, reservations: [] };
@@ -104,6 +104,24 @@
         }
     }
 
+    // 💡 英語表記になってしまう日付を綺麗な形式（YYYY-MM-DD）に強制変換する関数
+    function formatDateDisplay(dStr) {
+        if (!dStr) return "";
+        if (typeof dStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dStr)) {
+            return dStr;
+        }
+        try {
+            const d = new Date(dStr);
+            if (isNaN(d.getTime())) return String(dStr);
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        } catch (e) {
+            return String(dStr);
+        }
+    }
+
     function renderSettings() {
         const classDiv = document.getElementById('classList');
         classDiv.innerHTML = serverData.classes.length === 0 ? '<span class="text-muted small">登録なし</span>' : '';
@@ -117,10 +135,16 @@
 
         const dateUl = document.getElementById('dateList');
         dateUl.innerHTML = serverData.dates.length === 0 ? '<li class="list-group-item text-muted text-center">日付が登録されていません</li>' : '';
-        const sortedDates = [...serverData.dates].sort();
-        sortedDates.forEach((d) => {
+        
+        // 💡 管理画面に表示する日付も綺麗にフォーマットしてから並び替えます
+        const cleanedDates = serverData.dates.map(d => formatDateDisplay(d)).filter(Boolean);
+        const uniqueDates = [...new Set(cleanedDates)].sort();
+
+        uniqueDates.forEach((d) => {
             const idx = serverData.dates.indexOf(d);
-            dateUl.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">${d}<button class="btn btn-sm btn-outline-danger" onclick="removeDate(${idx})">削除</button></li>`;
+            // serverData.datesに含まれる元の値を削除できるように、インデックスを再取得
+            const originalIdx = serverData.dates.findIndex(orig => formatDateDisplay(orig) === d);
+            dateUl.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">${d}<button class="btn btn-sm btn-outline-danger" onclick="removeDate(${originalIdx !== -1 ? originalIdx : idx})">削除</button></li>`;
         });
 
         const timeUl = document.getElementById('timeList');
@@ -134,10 +158,11 @@
         const tbody = document.getElementById('resTable');
         tbody.innerHTML = serverData.reservations.length === 0 ? '<tr><td colspan="3" class="text-muted text-center py-4">現在ご予約はありません</td></tr>' : '';
         serverData.reservations.forEach((r, i) => {
+            const cleanResDate = formatDateDisplay(r.date); // 💡 予約一覧の日付も綺麗にフォーマット
             tbody.innerHTML += `
                 <tr>
                     <td>
-                        <span class="fw-bold text-primary">${r.date}</span><br>
+                        <span class="fw-bold text-primary">${cleanResDate}</span><br>
                         <small class="text-muted">${r.time}</small><br>
                         <span class="badge bg-secondary">${r.className}クラス</span>
                     </td>
@@ -184,7 +209,7 @@
         serverData.classes.push(name); document.getElementById('newClass').value = ""; renderSettings();
     }
     function removeClass(idx) { if(confirm('このクラスを削除しますか？')) { serverData.classes.splice(idx, 1); renderSettings(); } }
-    function removeDate(idx) { serverData.dates.splice(idx, 1); renderSettings(); }
+    function removeDate(idx) { if(idx !== -1) { serverData.dates.splice(idx, 1); renderSettings(); } }
     function addTime() {
         const val = document.getElementById('newTime').value.trim();
         if(!val || serverData.times.includes(val)) return;
@@ -211,10 +236,11 @@
         if(confirm('スプレッドシートからこの予約を削除しますか？')) {
             showStatus("削除中...");
             const target = serverData.reservations[i];
+            const cleanTargetDate = formatDateDisplay(target.date);
             try {
                 await fetch(APP_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'deleteReservation', date: target.date, className: target.className, time: target.time, name: target.name })
+                    body: JSON.stringify({ action: 'deleteReservation', date: cleanTargetDate, className: target.className, time: target.time, name: target.name })
                 });
                 loadData();
             } catch(e) { showStatus("削除エラー", true); }
